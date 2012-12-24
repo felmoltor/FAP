@@ -37,6 +37,13 @@ end
 # TODO: Añadir modulo para contar las contraseñas que contienen el nombre de usuario
 # TODO: Añadir opcion vervose para mostrar porcentaje de progreso con nivel 1 y password que analiza con nivel 2
 
+def showBanner
+  bannerf = File.open("banner.txt","r")
+  while (line = bannerf.gets)
+    puts line
+  end  
+end
+
 def parseOptions
     opts = {:pwdfile => nil, :ntop => 10, :charstats => true, :passwdstats => true, :regexp => '^.*(passwd|pwd|password).*$',:pwdlenstats => true,:verbose =>0}
     parser = OptionParser.new do |opt|
@@ -74,6 +81,8 @@ def parseOptions
     end # del parse do
 
     begin
+        # Show FAP banner
+        showBanner
         parser.parse($*)
         # Controlamos las opciones obligatorias
         raise OptionParser::MissingArgument if opts[:pwdfile].nil?
