@@ -31,6 +31,8 @@ end
 
 $executablepath = File.expand_path File.dirname(__FILE__)
 
+# TODO: Permitir diferentes formatos de ficheros de entrada, por ejemplo usr:pwd, o usr|pwd o usr pwd, etc y añadir por tanto
+#       la salida de estadísticas de dominios filtrados (gmail.com, hotmail.com, paises de los dominios, etc...)
 # TODO: Añadir modulo para guardar estadísticas en un sqlite (debe preguntar pais o lenguaje del dump, perfil del dump [clasificación de los usuarios, clasificación del dump; tienda on line, web privada, acceso privado de admins, etc...])
 # TODO: Añadir modulo para contar las repeticiones de letras y números
 # TODO: Añadir modulo para contar las password que son fechas con diferentes formatos
