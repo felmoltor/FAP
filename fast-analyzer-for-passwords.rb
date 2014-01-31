@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 
 """ 
-Copyright (C) 2012  Felipe Molina (@felmoltor, felmoltor@gmail.com)
+Copyright (C) 2012  Felipe Molina (@felmoltor)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
