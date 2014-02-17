@@ -21,4 +21,4 @@ doc/
 img/
 .project
 .swp
-leaks/
+real/*
