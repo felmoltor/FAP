@@ -19,15 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 require 'rubygems'
 require 'optparse'
-# Load optional gems
-# If gruff gem is installed, the graphs will be shown with gruff. If not, the graph will be shown in command line
-gruffinstalled = true
-if Gem.available?('gruff')
-    # Gruff needs also from libraby "rmagick". Install libmagick++-dev package for Ubuntu 11.10 and later
-    require 'gruff'
-else
-    gruffinstalled = false
-end
+require 'gruff'
 
 $executablepath = File.expand_path File.dirname(__FILE__)
 
@@ -252,28 +244,25 @@ contains_regexp_pwd.each{|matched_pwd|
 }
 puts "------------------------ "
 puts "==========="
+strength_histogram = Gruff::Pie.new
+strength_histogram.title = "Password strength"
+# strength_histogram.x_axis_label = "Strength"
+# strength_histogram.y_axis_label = "Percentage (%)"
+strength_histogram.hide_legend = false
+strength_histogram.legend_font_size = 15
+strength_histogram.legend_box_size = 15
+# Data
+strength_histogram.data("Complex",(complex.to_f*100/npwd).round(2))
+strength_histogram.data("Up & Low case only",(upperandlow.to_f*100/npwd).round(2))
+strength_histogram.data("Up & Low & Numbers",(upperandlownum.to_f*100/npwd).round(2))
+strength_histogram.data("Low & Numbers",(lowcasenum.to_f*100/npwd).round(2))
+strength_histogram.data("Up & Numbers",(upcasenum.to_f*100/npwd).round(2))
+strength_histogram.data("Low case",(lowercaseonly.to_f*100/npwd).round(2))
+strength_histogram.data("Up case",(uppercaseonly.to_f*100/npwd).round(2))
+strength_histogram.data("Numbers",(onlynumber.to_f*100/npwd).round(2))
+strength_histogram.data("Others",(other.to_f*100/npwd).round(2))
 
-if gruffinstalled
-    strength_histogram = Gruff::Pie.new
-    strength_histogram.title = "Password strength"
-    # strength_histogram.x_axis_label = "Strength"
-    # strength_histogram.y_axis_label = "Percentage (%)"
-    strength_histogram.hide_legend = false
-    strength_histogram.legend_font_size = 15
-    strength_histogram.legend_box_size = 15
-    # Data
-    strength_histogram.data("Complex",(complex.to_f*100/npwd).round(2))
-    strength_histogram.data("Up & Low case only",(upperandlow.to_f*100/npwd).round(2))
-    strength_histogram.data("Up & Low & Numbers",(upperandlownum.to_f*100/npwd).round(2))
-    strength_histogram.data("Low & Numbers",(lowcasenum.to_f*100/npwd).round(2))
-    strength_histogram.data("Up & Numbers",(upcasenum.to_f*100/npwd).round(2))
-    strength_histogram.data("Low case",(lowercaseonly.to_f*100/npwd).round(2))
-    strength_histogram.data("Up case",(uppercaseonly.to_f*100/npwd).round(2))
-    strength_histogram.data("Numbers",(onlynumber.to_f*100/npwd).round(2))
-    strength_histogram.data("Others",(other.to_f*100/npwd).round(2))
-
-    strength_histogram.write("#{options[:pwdfile]}-password-strength.png")
-end
+strength_histogram.write("#{options[:pwdfile]}-password-strength.png")
 
 puts "============"
 puts "= TAMANNOS ="
@@ -287,25 +276,23 @@ lenhist.each{|s|
   end
 }
 
-if gruffinstalled
-  x_labels = {}
-  labelindex = 0
-  
-    len_histogram = Gruff::Bar.new
-    len_histogram.title = "Password Lengths"
-    len_histogram.x_axis_label = "Password Length"
-    len_histogram.y_axis_label = "Percentage (%)"
-    len_histogram.sort = false
-    len_histogram.hide_legend = true
-    # Data
-    len_histogram.data("Password Length", lenhist_nonzero.values)
-    lenhist_nonzero.each {|size_key,percentage_val|
-      x_labels[labelindex] = size_key.to_s
-      labelindex += 1 
-    } 
-    len_histogram.labels = x_labels
-    len_histogram.write("#{options[:pwdfile]}-password-length.png")
-end
+x_labels = {}
+labelindex = 0
+
+len_histogram = Gruff::Bar.new
+len_histogram.title = "Password Lengths"
+len_histogram.x_axis_label = "Password Length"
+len_histogram.y_axis_label = "Percentage (%)"
+len_histogram.sort = false
+len_histogram.hide_legend = true
+# Data
+len_histogram.data("Password Length", lenhist_nonzero.values)
+lenhist_nonzero.each {|size_key,percentage_val|
+  x_labels[labelindex] = size_key.to_s
+  labelindex += 1 
+} 
+len_histogram.labels = x_labels
+len_histogram.write("#{options[:pwdfile]}-password-length.png")
 puts "============"
 
 
@@ -322,25 +309,23 @@ pwd_hist.each {|pass,nrepetitions|
   i += 1
 }
 
-if gruffinstalled
-    y_labels = {}
-    labelindex = 0
-  
-    top_histogram = Gruff::SideBar.new
-    top_histogram.title = "Top #{options[:ntop]} Repeated Passwords"
-    top_histogram.y_axis_label = "Password"
-    top_histogram.x_axis_label = "Number of repetitions (of #{npwd})"
-    top_histogram.sort = false
-    top_histogram.hide_legend = true
-    # Data
-    top_histogram.data("Repeated Passwords", pwd_hist_ntop.values,"#FE5010")
-    pwd_hist_ntop.each {|pwd,nrep|
-      y_labels[labelindex] = pwd.to_s
-      labelindex += 1 
-    } 
-    top_histogram.labels = y_labels
-    top_histogram.y_axis_increment = 1
-    top_histogram.write("#{options[:pwdfile]}-password-top.png")
-end
+y_labels = {}
+labelindex = 0
+
+top_histogram = Gruff::SideBar.new
+top_histogram.title = "Top #{options[:ntop]} Repeated Passwords"
+top_histogram.y_axis_label = "Password"
+top_histogram.x_axis_label = "Number of repetitions (of #{npwd})"
+top_histogram.sort = false
+top_histogram.hide_legend = true
+# Data
+top_histogram.data("Repeated Passwords", pwd_hist_ntop.values,"#FE5010")
+pwd_hist_ntop.each {|pwd,nrep|
+  y_labels[labelindex] = pwd.to_s
+  labelindex += 1 
+} 
+top_histogram.labels = y_labels
+top_histogram.y_axis_increment = 1
+top_histogram.write("#{options[:pwdfile]}-password-top.png")
 puts "===================="
 
