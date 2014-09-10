@@ -189,41 +189,45 @@ end
 f = File.open(options[:pwdfile],"r")
 
 f.each_line{|pwd|
-  pwd.strip!
-  npwd += 1
-  
-  if (isComplex(pwd))
-    complex +=1
-  elsif (isUpperLowerNums(pwd))
-    upperandlownum += 1
-  elsif (isUpperLower(pwd))
-    upperandlow += 1
-  elsif (isLowerCaseNums(pwd))
-    lowcasenum += 1
-  elsif (isUpperCaseNums(pwd))
-    upcasenum += 1
-  elsif (isLowerCaseOnly(pwd))
-    lowercaseonly += 1
-  elsif (isUpperCaseOnly(pwd))
-    uppercaseonly += 1
-  elsif (isOnlyNumbers(pwd))
-    onlynumber += 1
-  else
-    other += 1
-  end
-  
-  if containsRegexp(pwd,options[:regexp])
-    containsregexp += 1
-    contains_regexp_pwd << pwd
-  end
-  
-  lenhist[pwd.size] += 1
-  
-  # Save count of user passwords
-  if pwd_counter.keys.include?(pwd)
-      pwd_counter[pwd] += 1
-  else
-      pwd_counter[pwd] = 1
+  begin
+    pwd.strip!
+    npwd += 1
+    
+    if (isComplex(pwd))
+      complex +=1
+    elsif (isUpperLowerNums(pwd))
+      upperandlownum += 1
+    elsif (isUpperLower(pwd))
+      upperandlow += 1
+    elsif (isLowerCaseNums(pwd))
+      lowcasenum += 1
+    elsif (isUpperCaseNums(pwd))
+      upcasenum += 1
+    elsif (isLowerCaseOnly(pwd))
+      lowercaseonly += 1
+    elsif (isUpperCaseOnly(pwd))
+      uppercaseonly += 1
+    elsif (isOnlyNumbers(pwd))
+      onlynumber += 1
+    else
+      other += 1
+    end
+    
+    if containsRegexp(pwd,options[:regexp])
+      containsregexp += 1
+      contains_regexp_pwd << pwd
+    end
+    
+    lenhist[pwd.size] += 1
+    
+    # Save count of user passwords
+    if pwd_counter.keys.include?(pwd)
+        pwd_counter[pwd] += 1
+    else
+        pwd_counter[pwd] = 1
+    end
+  rescue Exception => e
+    puts "There was a problem with the password #{pwd} Maybe encoding? Ignoring it for now."
   end
 }
 
