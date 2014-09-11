@@ -46,14 +46,14 @@ end
 #====================
 
 def parseOptions
-    opts = {:pwdfile => nil, :ntop => 10, :charstats => true, :passwdstats => true, :regexp => '^.*(passwd|pwd|password).*$',:pwdlenstats => true}
+    opts = {:dumpfile => nil, :ntop => 10, :format => "P", :fieldseparator => ":", :charstats => true, :passwdstats => true, :regexp => '^.*(passwd|pwd|password).*$',:pwdlenstats => true}
     parser = OptionParser.new do |opt|
-        opt.banner = "Usage: #{__FILE__} [options] -f <password-file>"
+        opt.banner = "Usage: #{__FILE__} [options] -f <dump-file>"
         opt.separator ""
         opt.separator "Specific options: "
 
-        opt.on("-f PWDFILENAME","--pwd-file PWDFILENAME","File with one password per line (required)") do |pwdfile|
-            opts[:pwdfile] = pwdfile
+        opt.on("-f DUMPFILE","--pwd-file DUMPFILE","File with one password per line (required)") do |dumpfile|
+            opts[:dumpfile] = dumpfile
         end
         opt.on('-t [NUMBER]','--top-passwd [NUMBER]',Integer, 'Size of the list with the most repeated passwords') do |ntop|
             opts[:ntop] = ntop
@@ -67,6 +67,20 @@ def parseOptions
         opt.on('-l','--no-len-stats','Disable analysis for length of passwords') do
             opts[:pwdlenstats] = false
         end
+        opt.on('-F [FORMAT]','--format [FORMAT]','The input file can be one of the following format (UFSP,P,U). Default is "P"') do |format|
+            if format.strip == "U" or format.strip == "P" or format.strip == "UFSP"
+              opts[:format] = format
+            else
+              opts[:format] = "P"
+            end
+        end
+        opt.on('--separator [FIELD SEPARATOR]','If the file type is UFSP, you can specify here the Field Separator character. Default is ":"') do |fs|
+            if fs.size != 1
+              opts[:fieldseparator] = ":"
+            else
+              opts[:fieldseparator] = fs
+            end
+        end
         opt.on('-E [REGEXP]','--regexp [REGEXP]','Search the specified regular expression within the password file (default is "^.*(passwd|pwd|password).*$")') do |regexp|
             opts[:regexp] = regexp
         end
@@ -74,8 +88,6 @@ def parseOptions
             puts parser
             exit
         end
- 
-
     end # del parse do
 
     begin
@@ -83,7 +95,7 @@ def parseOptions
         # showBanner
         parser.parse($*)
         # Controlamos las opciones obligatorias
-        raise OptionParser::MissingArgument if opts[:pwdfile].nil?
+        raise OptionParser::MissingArgument if opts[:dumpfile].nil?
     rescue OptionParser::ParseError
         puts "Error with the options provided"
         puts parser
@@ -173,59 +185,107 @@ other = 0
 ntop = 10
 len_histogram = nil
 strength_histogram = nil
+domain_counter = {}
 pwd_counter = {}
 pwd_hist_ntop = {}
+domain_hist_ntop = {}
 contains_regexp_pwd = []
-i = 1
 
 # Obtenemos las opciones de la linea de comandos
 options = parseOptions
 
-if (!File.exists?(options[:pwdfile]))
+if (!File.exists?(options[:dumpfile]))
   puts "Error: No existe el fichero que has especificado"
   exit
 end
 
-f = File.open(options[:pwdfile],"r")
+if options[:format] == "UFSP"
+  puts "Analyzing a file with user, passwords and separator '#{options[:fieldseparator]}'"
+elsif options[:format] == "U"
+  puts "Analyzing a file with only usernames"  
+else
+  puts "Analyzing a file with only passwords"
+end
 
-f.each_line{|pwd|
+f = File.open(options[:dumpfile],"r")
+
+f.each_line{|dumpline|
   begin
-    pwd.strip!
-    npwd += 1
-    
-    if (isComplex(pwd))
-      complex +=1
-    elsif (isUpperLowerNums(pwd))
-      upperandlownum += 1
-    elsif (isUpperLower(pwd))
-      upperandlow += 1
-    elsif (isLowerCaseNums(pwd))
-      lowcasenum += 1
-    elsif (isUpperCaseNums(pwd))
-      upcasenum += 1
-    elsif (isLowerCaseOnly(pwd))
-      lowercaseonly += 1
-    elsif (isUpperCaseOnly(pwd))
-      uppercaseonly += 1
-    elsif (isOnlyNumbers(pwd))
-      onlynumber += 1
+    dumpline.strip!
+    user = ""
+    pwd = ""
+    # If the file is UFSP (User Field Separator Passwor), split the fields
+    if options[:format] == "UFSP"
+      user=dumpline.split(options[:fieldseparator])[0]
+      pwd=dumpline.split(options[:fieldseparator])[1]
+    elsif options[:format] == "U"
+      user = dumpline
+    else # Is a password file
+      pwd = dumpline
+    end
+    ##############################
+    # Analice stats of usernames #
+    ##############################
+    # Domain stats
+    userm=""
+    domain=""
+    m = /^(.*)\@(.+\..{2,})/.match(user)
+    if !m.nil? and !m[1].nil? and !m[2].nil?
+      domain=m[2]
+      userm=m[1]
     else
-      other += 1
-    end
-    
-    if containsRegexp(pwd,options[:regexp])
-      containsregexp += 1
-      contains_regexp_pwd << pwd
-    end
-    
-    lenhist[pwd.size] += 1
-    
+      userm=user
+      domain=""
+    end 
     # Save count of user passwords
-    if pwd_counter.keys.include?(pwd)
-        pwd_counter[pwd] += 1
+    if domain_counter.keys.include?(domain)
+        domain_counter[domain] += 1
     else
-        pwd_counter[pwd] = 1
+        domain_counter[domain] = 1
+    end 
+    # TODO: Keywords in usernames (admin,operator,root,superuser,etc...)    
+    
+    
+    ##############################
+    # Analice stats of passwords #
+    ##############################  
+    if !pwd.nil? and pwd.size > 0
+      npwd += 1   
+      if (isComplex(pwd))
+        complex +=1
+      elsif (isUpperLowerNums(pwd))
+        upperandlownum += 1
+      elsif (isUpperLower(pwd))
+        upperandlow += 1
+      elsif (isLowerCaseNums(pwd))
+        lowcasenum += 1
+      elsif (isUpperCaseNums(pwd))
+        upcasenum += 1
+      elsif (isLowerCaseOnly(pwd))
+        lowercaseonly += 1
+      elsif (isUpperCaseOnly(pwd))
+        uppercaseonly += 1
+      elsif (isOnlyNumbers(pwd))
+        onlynumber += 1
+      else
+        other += 1
+      end
+      
+      if containsRegexp(pwd,options[:regexp])
+        containsregexp += 1
+        contains_regexp_pwd << pwd
+      end
+      
+      lenhist[pwd.size] += 1
+      
+      # Save count of user passwords
+      if pwd_counter.keys.include?(pwd)
+          pwd_counter[pwd] += 1
+      else
+          pwd_counter[pwd] = 1
+      end 
     end
+    
   rescue Exception => e
     puts "There was a problem with the password #{pwd} Maybe encoding? Ignoring it for now."
   end
@@ -247,6 +307,21 @@ contains_regexp_pwd.each{|matched_pwd|
     puts "-- #{matched_pwd}"
 }
 puts "------------------------ "
+
+i = 1
+puts "==============="
+puts "= Top #{options[:ntop]} domains ="
+domain_hist = domain_counter.sort_by{|k,v| v}.reverse
+domain_hist.each {|domain,nrepetitions|
+  puts "#{i} - #{domain}: #{nrepetitions}"
+  domain_hist_ntop[domain] = nrepetitions
+  if i >= options[:ntop]
+    break
+  end
+  i += 1
+}
+puts "==============="
+
 puts "==========="
 strength_histogram = Gruff::Pie.new
 strength_histogram.title = "Password strength"
@@ -266,7 +341,7 @@ strength_histogram.data("Up case",(uppercaseonly.to_f*100/npwd).round(2))
 strength_histogram.data("Numbers",(onlynumber.to_f*100/npwd).round(2))
 strength_histogram.data("Others",(other.to_f*100/npwd).round(2))
 
-strength_histogram.write("#{options[:pwdfile]}-password-strength.png")
+strength_histogram.write("#{options[:dumpfile]}-password-strength.png")
 
 puts "============"
 puts "= TAMANNOS ="
@@ -296,11 +371,12 @@ lenhist_nonzero.each {|size_key,percentage_val|
   labelindex += 1 
 } 
 len_histogram.labels = x_labels
-len_histogram.write("#{options[:pwdfile]}-password-length.png")
+len_histogram.write("#{options[:dumpfile]}-password-length.png")
 puts "============"
 
 
 # FMT (22/11/2012)
+i = 1
 puts "===================="
 puts "= Top #{options[:ntop]} passwords ="
 pwd_hist = pwd_counter.sort_by{|k,v| v}.reverse
@@ -330,6 +406,6 @@ pwd_hist_ntop.each {|pwd,nrep|
 } 
 top_histogram.labels = y_labels
 top_histogram.y_axis_increment = 1
-top_histogram.write("#{options[:pwdfile]}-password-top.png")
+top_histogram.write("#{options[:dumpfile]}-password-top.png")
 puts "===================="
 
