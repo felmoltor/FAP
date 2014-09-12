@@ -45,6 +45,36 @@ end
 
 #====================
 
+def detectDumpType(dumpfile)
+  seemslike = "P"
+  nlinesprobe = 50
+  # Analizamos los X primeros records del dump
+  cont=0
+  f = File.open(dumpfile,"r")
+  f.each{|dumpline|
+    if cont==nlinesprobe
+      break
+    end
+    cont+=1
+    # Detect kind of dump (U,P,UFSP, other?)
+    # Seems like email FS and password?
+    memailpass = /^.+\@.+\..{2,}:.*$/.match(dumpline)
+    memailpass = /^.+\@.+\..{2,}\|.*$/.match(dumpline)
+    memailpass = /^.+\@.+\..{2,}\s+.*$/.match(dumpline)
+    memailpass = /^.+:.*$/.match(dumpline)
+    memailpass = /^.+\|.*$/.match(dumpline)
+    memailpass = /^.+\s+.*$/.match(dumpline)
+    # Seems like email and nothing more?
+    //
+    # Seems like strings?
+    //
+  }
+  f.close
+  return seemslike
+end
+
+#====================
+
 def parseOptions
     opts = {:dumpfile => nil, :ntop => 10, :format => "P", :fieldseparator => ":", :charstats => true, :passwdstats => true, :regexp => '^.*(passwd|pwd|password).*$',:pwdlenstats => true}
     parser = OptionParser.new do |opt|
@@ -161,9 +191,9 @@ def getCharRepetitions(pwd)
   # Every char
 end
 
-#====================================
-#====== MAIN ========================
-#====================================
+#==================
+#====== MAIN ======
+#==================
 
 histogram = nil
 maxlen = 0
@@ -190,6 +220,7 @@ pwd_counter = {}
 pwd_hist_ntop = {}
 domain_hist_ntop = {}
 contains_regexp_pwd = []
+dumpfilename = ""
 
 # Obtenemos las opciones de la linea de comandos
 options = parseOptions
@@ -197,6 +228,9 @@ options = parseOptions
 if (!File.exists?(options[:dumpfile]))
   puts "Error: No existe el fichero que has especificado"
   exit
+else
+  extn = File.extname(options[:dumpfile])
+  dumpfilename = File.basename(options[:dumpfile],extn)
 end
 
 if options[:format] == "UFSP"
@@ -341,7 +375,7 @@ strength_histogram.data("Up case",(uppercaseonly.to_f*100/npwd).round(2))
 strength_histogram.data("Numbers",(onlynumber.to_f*100/npwd).round(2))
 strength_histogram.data("Others",(other.to_f*100/npwd).round(2))
 
-strength_histogram.write("#{options[:dumpfile]}-password-strength.png")
+strength_histogram.write("outputs/#{dumpfilename}-password-strength.png")
 
 puts "============"
 puts "= TAMANNOS ="
@@ -371,7 +405,7 @@ lenhist_nonzero.each {|size_key,percentage_val|
   labelindex += 1 
 } 
 len_histogram.labels = x_labels
-len_histogram.write("#{options[:dumpfile]}-password-length.png")
+len_histogram.write("outputs/#{dumpfilename}-password-length.png")
 puts "============"
 
 
@@ -406,6 +440,6 @@ pwd_hist_ntop.each {|pwd,nrep|
 } 
 top_histogram.labels = y_labels
 top_histogram.y_axis_increment = 1
-top_histogram.write("#{options[:dumpfile]}-password-top.png")
+top_histogram.write("outputs/#{dumpfilename}-password-top.png")
 puts "===================="
 
