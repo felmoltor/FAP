@@ -34,6 +34,11 @@ $executablepath = File.expand_path File.dirname(__FILE__)
 # TODO: Añadir opcion vervose para mostrar porcentaje de progreso con nivel 1 y password que analiza con nivel 2
 # TODO: Añadir modulo para dar una puntuación de 1 a 10 la "salud" de la base de datos de contraseñas
 
+# Globals (bad, very bad)
+$nlines = 0
+$cline = 0
+$percentagestep=5
+
 #====================
 
 def showBanner
@@ -41,6 +46,13 @@ def showBanner
   while (line = bannerf.gets)
     puts line
   end  
+end
+
+
+#====================
+
+def calculateETA
+  # Read the 
 end
 
 #====================
@@ -65,9 +77,9 @@ def detectDumpType(dumpfile)
     memailpass = /^.+\|.*$/.match(dumpline)
     memailpass = /^.+\s+.*$/.match(dumpline)
     # Seems like email and nothing more?
-    //
+    
     # Seems like strings?
-    //
+    
   }
   f.close
   return seemslike
@@ -221,6 +233,9 @@ pwd_hist_ntop = {}
 domain_hist_ntop = {}
 contains_regexp_pwd = {}
 dumpfilename = ""
+ndumpline=0
+ndumptotal=0
+lastshown=0
 
 # Obtenemos las opciones de la linea de comandos
 options = parseOptions
@@ -232,6 +247,9 @@ else
   extn = File.extname(options[:dumpfile])
   dumpfilename = File.basename(options[:dumpfile],extn)
 end
+
+# Get number of lines of the dump
+ndumptotal=%x( wc -l #{options[:dumpfile]} ).to_i
 
 if options[:format] == "UFSP"
   puts "Analyzing a file with user, passwords and separator '#{options[:fieldseparator]}'"
@@ -324,8 +342,16 @@ f.each_line{|dumpline|
       end 
     end
     
+    ndumpline+=1
+    progress = ((ndumpline.to_f/ndumptotal.to_f)*100.0).to_i
+    if progress%$percentagestep == 0
+      if lastshown!=progress
+        puts " #{progress}%"
+        lastshown=progress
+      end
+    end
   rescue Exception => e
-    puts "There was a problem with the password #{pwd} Maybe encoding? Ignoring it for now."
+    puts "There was a problem with the password #{pwd} (#{e.message})" 
   end
 }
 
