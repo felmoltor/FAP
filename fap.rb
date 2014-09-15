@@ -346,7 +346,7 @@ f.each_line{|dumpline|
     progress = ((ndumpline.to_f/ndumptotal.to_f)*100.0).to_i
     if progress%$percentagestep == 0
       if lastshown!=progress
-        puts " #{progress}%"
+        puts " #{progress}% (#{Time.now})"
         lastshown=progress
       end
     end
