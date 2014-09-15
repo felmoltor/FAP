@@ -219,7 +219,7 @@ domain_counter = {}
 pwd_counter = {}
 pwd_hist_ntop = {}
 domain_hist_ntop = {}
-contains_regexp_pwd = []
+contains_regexp_pwd = {}
 dumpfilename = ""
 
 # Obtenemos las opciones de la linea de comandos
@@ -307,7 +307,11 @@ f.each_line{|dumpline|
       
       if containsRegexp(pwd,options[:regexp])
         containsregexp += 1
-        contains_regexp_pwd << pwd
+        if (contains_regexp_pwd[pwd].nil?)
+          contains_regexp_pwd[pwd] = 1
+        else
+          contains_regexp_pwd[pwd] += 1
+        end
       end
       
       lenhist[pwd.size] += 1
@@ -337,8 +341,8 @@ puts "- Numbers only: #{onlynumber} (#{(onlynumber.to_f*100/npwd).round(2)} %)"
 puts "- Other: #{other} (#{(other.to_f*100/npwd).round(2)} %)"
 puts "------------------------ "
 puts "- Contains the regexp (#{options[:regexp]}): #{containsregexp} (#{(containsregexp.to_f*100/npwd).round(2)} %): "
-contains_regexp_pwd.each{|matched_pwd|
-    puts "-- #{matched_pwd}"
+contains_regexp_pwd.each{|matched_pwd,times|
+    puts "-- #{matched_pwd}: #{times}"
 }
 puts "------------------------ "
 
