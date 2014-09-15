@@ -341,6 +341,7 @@ puts "- Numbers only: #{onlynumber} (#{(onlynumber.to_f*100/npwd).round(2)} %)"
 puts "- Other: #{other} (#{(other.to_f*100/npwd).round(2)} %)"
 puts "------------------------ "
 puts "- Contains the regexp (#{options[:regexp]}): #{containsregexp} (#{(containsregexp.to_f*100/npwd).round(2)} %): "
+contains_regexp_pwd = contains_regexp_pwd.sort_by {|key, value| value}.reverse
 contains_regexp_pwd.each{|matched_pwd,times|
     puts "-- #{matched_pwd}: #{times}"
 }
