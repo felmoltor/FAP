@@ -300,14 +300,14 @@ dumplines.each{|dline|
         end
       end
     else # Is a password file
-      if dumpline.strip.size > 0
-        dumppass << dumpline
+      if dline.strip.size > 0
+        dumppass << dline
       else
         dumppass << "<empty>"
       end
     end
   rescue Exception => e
-    $stderr.puts "Error (#{e.message})"
+    $stderr.puts "Error with line #{dline.strip} (#{e.message})"
   end
 } 
 # Histograma de passwords usando librería facets
@@ -349,8 +349,11 @@ dumppass.each{|pwd|
         contains_regexp_pwd[pwd] += 1
       end
     end
-    
-    lenhist[pwd.size] += 1
+    begin
+      lenhist[pwd.size] += 1
+    rescue Exception => e
+      puts "lenhist[#{pwd.size}] +=1 (#{e.message})"
+    end
     
     ndumpline+=1
     progress = ((ndumpline.to_f/ndumptotal.to_f)*100.0).to_i
