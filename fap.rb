@@ -20,23 +20,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 require 'rubygems'
 require 'optparse'
 require 'gruff'
+require 'facets'
 
 $executablepath = File.expand_path File.dirname(__FILE__)
 
-# TODO: Permitir diferentes formatos de ficheros de entrada, por ejemplo usr:pwd, o usr|pwd o usr pwd, etc y añadir por tanto
-#       la salida de estadísticas de dominios filtrados (gmail.com, hotmail.com, paises de los dominios, etc...)
 # TODO: Añadir modulo para guardar estadísticas en un sqlite (debe preguntar pais o lenguaje del dump, perfil del dump [clasificación de los usuarios, clasificación del dump; tienda on line, web privada, acceso privado de admins, etc...])
 # TODO: Añadir modulo para contar las repeticiones de letras y números
 # TODO: Añadir modulo para contar las password que son fechas con diferentes formatos
-# TODO: Añadir modulo para contar el nº de password que contienen una palabra o Regexp
 # TODO: Añadir modulo para contar las contraseñas que contienen un listado de ciudades de un fichero
 # TODO: Añadir modulo para contar las contraseñas que contienen el nombre de usuario
-# TODO: Añadir opcion vervose para mostrar porcentaje de progreso con nivel 1 y password que analiza con nivel 2
 # TODO: Añadir modulo para dar una puntuación de 1 a 10 la "salud" de la base de datos de contraseñas
 
 # Globals (bad, very bad)
-$nlines = 0
-$cline = 0
 $percentagestep=5
 
 #====================
@@ -51,8 +46,10 @@ end
 
 #====================
 
-def calculateETA
-  # Read the 
+def calculateETA(currentrow,totalrows,startepoch)
+  runseconds=Time.now.to_i-startepoch
+  etaseconds = (totalrows-currentrow).to_f/(currentrow.to_f/runseconds.to_f)
+  return etaseconds
 end
 
 #====================
@@ -150,7 +147,8 @@ end
 
 # Regexp: Check if match with the regular expression specified in the arguments
 def containsRegexp(pwd,regexp)
-    !(Regexp.new(regexp) =~ pwd).nil?
+  r = Regexp.compile(regexp)
+  !(r.match(pwd)).nil?
 end
 #===============
 
@@ -236,6 +234,7 @@ dumpfilename = ""
 ndumpline=0
 ndumptotal=0
 lastshown=0
+startepoch = Time.now.to_i
 
 # Obtenemos las opciones de la linea de comandos
 options = parseOptions
@@ -260,100 +259,117 @@ else
 end
 
 f = File.open(options[:dumpfile],"r")
+puts "Loading the whole dump file. Be patient..."
+dumplines = f.readlines()
+f.seek(0)
 
-f.each_line{|dumpline|
+# Read all lines to an array
+dumpusers = []
+dumpnames = []
+dumppass = []
+dumpdomains = []
+puts "Spliting the dump information..."
+dumplines.each{|dline|
   begin
-    dumpline.strip!
-    user = ""
-    pwd = ""
-    # If the file is UFSP (User Field Separator Passwor), split the fields
     if options[:format] == "UFSP"
-      user=dumpline.split(options[:fieldseparator])[0]
-      pwd=dumpline.split(options[:fieldseparator])[1]
-    elsif options[:format] == "U"
-      user = dumpline
-    else # Is a password file
-      pwd = dumpline
-    end
-    ##############################
-    # Analice stats of usernames #
-    ##############################
-    # Domain stats
-    userm=""
-    domain=""
-    m = /^(.*)\@(.+\..{2,})/.match(user)
-    if !m.nil? and !m[1].nil? and !m[2].nil?
-      domain=m[2]
-      userm=m[1]
-    else
-      userm=user
-      domain=""
-    end 
-    # Save count of user passwords
-    if domain_counter.keys.include?(domain)
-        domain_counter[domain] += 1
-    else
-        domain_counter[domain] = 1
-    end 
-    # TODO: Keywords in usernames (admin,operator,root,superuser,etc...)    
-    
-    
-    ##############################
-    # Analice stats of passwords #
-    ##############################  
-    if !pwd.nil? and pwd.size > 0
-      npwd += 1   
-      if (isComplex(pwd))
-        complex +=1
-      elsif (isUpperLowerNums(pwd))
-        upperandlownum += 1
-      elsif (isUpperLower(pwd))
-        upperandlow += 1
-      elsif (isLowerCaseNums(pwd))
-        lowcasenum += 1
-      elsif (isUpperCaseNums(pwd))
-        upcasenum += 1
-      elsif (isLowerCaseOnly(pwd))
-        lowercaseonly += 1
-      elsif (isUpperCaseOnly(pwd))
-        uppercaseonly += 1
-      elsif (isOnlyNumbers(pwd))
-        onlynumber += 1
+      dsplit = dline.split(options[:fieldseparator])
+      dumpusers << dsplit[0]
+      if dsplit[1].strip.size > 0
+        dumppass << dsplit[1].strip
       else
-        other += 1
+        dumppass << "<empty>"
       end
-      
-      if containsRegexp(pwd,options[:regexp])
-        containsregexp += 1
-        if (contains_regexp_pwd[pwd].nil?)
-          contains_regexp_pwd[pwd] = 1
-        else
-          contains_regexp_pwd[pwd] += 1
+      mailmatch = /^(.*)\@(.*\..{2,}$)/.match(dsplit[0])
+      if !mailmatch.nil? 
+        if !mailmatch[1].nil?
+          dumpnames << mailmatch[1]
+        end
+        if !mailmatch[2].nil?
+          dumpdomains << mailmatch[2]          
         end
       end
-      
-      lenhist[pwd.size] += 1
-      
-      # Save count of user passwords
-      if pwd_counter.keys.include?(pwd)
-          pwd_counter[pwd] += 1
+    elsif options[:format] == "U"
+      dumpusers << dline
+      mailmatch = /^(.*)\@(.*\..{2,}$)/.match(dline)
+      if !mailmatch.nil?
+        if !mailmatch[1].nil?
+          dumpnames << mailmatch[1]
+        end
+        if !mailmatch[2].nil?
+          dumpdomains << mailmatch[2]          
+        end
+      end
+    else # Is a password file
+      if dumpline.strip.size > 0
+        dumppass << dumpline
       else
-          pwd_counter[pwd] = 1
-      end 
+        dumppass << "<empty>"
+      end
     end
+  rescue Exception => e
+    $stderr.puts "Error (#{e.message})"
+  end
+} 
+# Histograma de passwords usando librería facets
+puts "Analycing the password frecuency..."
+pwd_counter = dumppass.frequency
+puts "Analycing the domains frecuency..."
+domain_counter = dumpdomains.frequency
+
+# 
+puts "Analycing passwords complexity..."
+dumppass.each{|pwd|
+  if !pwd.nil? and pwd.size > 0
+    npwd += 1   
+    if (isComplex(pwd))
+      complex +=1
+    elsif (isUpperLowerNums(pwd))
+      upperandlownum += 1
+    elsif (isUpperLower(pwd))
+      upperandlow += 1
+    elsif (isLowerCaseNums(pwd))
+      lowcasenum += 1
+    elsif (isUpperCaseNums(pwd))
+      upcasenum += 1
+    elsif (isLowerCaseOnly(pwd))
+      lowercaseonly += 1
+    elsif (isUpperCaseOnly(pwd))
+      uppercaseonly += 1
+    elsif (isOnlyNumbers(pwd))
+      onlynumber += 1
+    else
+      other += 1
+    end
+    
+    if containsRegexp(pwd,options[:regexp])
+      containsregexp += 1
+      if (contains_regexp_pwd[pwd].nil?)
+        contains_regexp_pwd[pwd] = 1
+      else
+        contains_regexp_pwd[pwd] += 1
+      end
+    end
+    
+    lenhist[pwd.size] += 1
     
     ndumpline+=1
     progress = ((ndumpline.to_f/ndumptotal.to_f)*100.0).to_i
     if progress%$percentagestep == 0
       if lastshown!=progress
-        puts " #{progress}% (#{Time.now})"
+        time = Time.new
+        etaseconds=calculateETA(ndumpline,ndumptotal,startepoch)
+        enddate=Time.now.to_i+etaseconds
+        speed=ndumpline/(Time.now.to_i-startepoch)
+        puts " #{progress}% - Line #{ndumpline} of #{ndumptotal}\t(#{speed} pass/sec, ETA #{Time.at(enddate).strftime("%Y-%m-%d %H:%M:%S")})"
         lastshown=progress
       end
     end
-  rescue Exception => e
-    puts "There was a problem with the password #{pwd} (#{e.message})" 
   end
 }
+
+###################
+# Results section #
+###################
 
 puts "= RESULTS ="
 puts "- Complex: #{complex} (#{(complex.to_f*100/npwd).round(2)} %)"
