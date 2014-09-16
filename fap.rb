@@ -21,6 +21,7 @@ require 'rubygems'
 require 'optparse'
 require 'gruff'
 require 'facets'
+require 'colorize'
 
 $executablepath = File.expand_path File.dirname(__FILE__)
 
@@ -39,7 +40,7 @@ $percentagestep=5
 def showBanner
   bannerf = File.open("#{$executablepath}/banner.txt","r")
   while (line = bannerf.gets)
-    puts line
+    print line.blue
   end  
 end
 
@@ -131,7 +132,7 @@ def parseOptions
 
     begin
         # Show FAP banner
-        # showBanner
+        showBanner
         parser.parse($*)
         # Controlamos las opciones obligatorias
         raise OptionParser::MissingArgument if opts[:dumpfile].nil?

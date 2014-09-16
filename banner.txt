@@ -4,3 +4,11 @@ ________________ __________         ____    _______
  |    | /    |    \    |      \   / |   |   \  \_/   \
  \__  | \____|__  /____|       \_/  |___| /\ \_____  /
     \/          \/                        \/       \/ 
+
+Author: @felmoltor
+License: GPLv3
+Summary: This tool analyzes password dump. The dump can be of this three kinds (option -F):
+            * P: Passwords only
+            * U: Users only
+            * UFSP: User Field Separator Password (example felipe:Hola123)
+
