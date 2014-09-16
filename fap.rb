@@ -137,7 +137,7 @@ def parseOptions
         # Controlamos las opciones obligatorias
         raise OptionParser::MissingArgument if opts[:dumpfile].nil?
     rescue OptionParser::ParseError
-        puts "Error with the options provided"
+        puts "Error with the options provided".red
         puts parser
         exit
     end
@@ -242,7 +242,7 @@ startepoch = Time.now.to_i
 options = parseOptions
 
 if (!File.exists?(options[:dumpfile]))
-  puts "Error: No existe el fichero que has especificado"
+  puts "Error: No existe el fichero que has especificado".red
   exit
 else
   extn = File.extname(options[:dumpfile])
@@ -310,17 +310,17 @@ dumplines.each{|dline|
       end
     end
   rescue Exception => e
-    $stderr.puts "Error with line #{dline} (#{e.message})"
+    $stderr.puts "Error with line #{dline} (#{e.message})".red
   end
 } 
 # Histograma de passwords usando librería facets
-puts "Analycing the password frecuency..."
+puts "Analyzing the password frecuency..."
 pwd_counter = dumppass.frequency
-puts "Analycing the domains frecuency..."
+puts "Analyzing the domains frecuency..."
 domain_counter = dumpdomains.frequency
 
 # 
-puts "Analycing passwords complexity..."
+puts "Analyzing passwords complexity..."
 dumppass.each{|pwd|
   if !pwd.nil? and pwd.size > 0
     npwd += 1   
@@ -376,7 +376,9 @@ lenhist = lengths.frequency
 # Results section #
 ###################
 
-puts "= RESULTS ="
+puts "=======================".green
+puts "= Password complexity =".green
+puts "=======================".green
 puts "- Complex: #{complex} (#{(complex.to_f*100/npwd).round(2)} %)"
 puts "- Upper and Low and numbers: #{upperandlownum} (#{(upperandlownum.to_f*100/npwd).round(2)} %)"
 puts "- Upper and Low only: #{upperandlow} (#{(upperandlow.to_f*100/npwd).round(2)} %)"
@@ -395,8 +397,9 @@ contains_regexp_pwd.each{|matched_pwd,times|
 puts "------------------------ "
 
 i = 1
-puts "==============="
-puts "= Top #{options[:ntop]} domains ="
+puts "=====================".green
+puts "= Top #{options[:ntop]} domains =".green
+puts "=====================".green
 domain_hist = domain_counter.sort_by{|k,v| v}.reverse
 domain_hist.each {|domain,nrepetitions|
   puts "#{i} - #{domain}: #{nrepetitions}"
@@ -406,9 +409,6 @@ domain_hist.each {|domain,nrepetitions|
   end
   i += 1
 }
-puts "==============="
-
-puts "==========="
 strength_histogram = Gruff::Pie.new
 strength_histogram.title = "Password strength"
 # strength_histogram.x_axis_label = "Strength"
@@ -429,8 +429,9 @@ strength_histogram.data("Others",(other.to_f*100/npwd).round(2))
 
 strength_histogram.write("outputs/#{dumpfilename}-password-strength.png")
 
-puts "========="
-puts "= SIZES ="
+puts "=========".green
+puts "= SIZES =".green
+puts "=========".green
 size = 0
 
 lenhist.sort.each{|pwdlen,count|
@@ -457,18 +458,18 @@ lenhist_nonzero.each {|size_key,percentage_val|
 } 
 len_histogram.labels = x_labels
 len_histogram.write("outputs/#{dumpfilename}-password-length.png")
-puts "========="
 
 
-puts "====================="
-puts "= Passwords entropy ="
+puts "=====================".green
+puts "= Passwords entropy =".green
+puts "=====================".green
 puts dumppass.entropy
-puts "====================="
 
 # FMT (22/11/2012)
 i = 1
-puts "===================="
-puts "= Top #{options[:ntop]} passwords ="
+puts "====================".green
+puts "= Top #{options[:ntop]} passwords =".green
+puts "====================".green
 pwd_hist = pwd_counter.sort_by{|k,v| v}.reverse
 pwd_hist.each {|pass,nrepetitions|
   puts "#{i} - #{pass}: #{nrepetitions}"
@@ -497,5 +498,4 @@ pwd_hist_ntop.each {|pwd,nrep|
 top_histogram.labels = y_labels
 top_histogram.y_axis_increment = 1
 top_histogram.write("outputs/#{dumpfilename}-password-top.png")
-puts "===================="
 
