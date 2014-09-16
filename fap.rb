@@ -276,7 +276,7 @@ dumplines.each{|dline|
     if options[:format] == "UFSP"
       dsplit = dline.split(options[:fieldseparator])
       dumpusers << dsplit[0]
-      if dsplit[1].size > 0
+      if !dsplit[1].nil? and dsplit[1].size > 0
         dumppass << dsplit[1]
       else
         dumppass << "<empty>"
