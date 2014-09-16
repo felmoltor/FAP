@@ -272,11 +272,12 @@ dumpdomains = []
 puts "Spliting the dump information..."
 dumplines.each{|dline|
   begin
+    dline.strip!
     if options[:format] == "UFSP"
       dsplit = dline.split(options[:fieldseparator])
       dumpusers << dsplit[0]
-      if dsplit[1].strip.size > 0
-        dumppass << dsplit[1].strip
+      if dsplit[1].size > 0
+        dumppass << dsplit[1]
       else
         dumppass << "<empty>"
       end
@@ -308,7 +309,7 @@ dumplines.each{|dline|
       end
     end
   rescue Exception => e
-    $stderr.puts "Error with line #{dline.strip} (#{e.message})"
+    $stderr.puts "Error with line #{dline} (#{e.message})"
   end
 } 
 # Histograma de passwords usando librería facets
