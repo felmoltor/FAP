@@ -313,7 +313,7 @@ dumplines.each{|dline|
       end
     end
   rescue Exception => e
-    $stderr.puts "Error with line #{dline} (#{e.message})".red
+    $stderr.puts "Error with line #{dline} (#{e.message})"
   end
 } 
 # Histograma de passwords usando librería facets
