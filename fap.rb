@@ -86,7 +86,7 @@ end
 #====================
 
 def parseOptions
-    opts = {:dumpfile => nil, :ntop => 10, :format => "P", :fieldseparator => ":", :charstats => true, :passwdstats => true, :regexp => '^.*(passwd|pwd|password).*$',:pwdlenstats => true}
+    opts = {:dumpfile => nil, :regsearch => false, :ntop => 10, :format => "P", :fieldseparator => ":", :charstats => true, :passwdstats => true, :regexp => '^.*(passwd|pwd|password).*$',:pwdlenstats => true}
     parser = OptionParser.new do |opt|
         opt.banner = "Usage: #{__FILE__} [options] -f <dump-file>"
         opt.separator ""
@@ -98,15 +98,15 @@ def parseOptions
         opt.on('-t [NUMBER]','--top-passwd [NUMBER]',Integer, 'Size of the list with the most repeated passwords') do |ntop|
             opts[:ntop] = ntop
         end
-        opt.on('-c','--no-char-stats', 'Disable analysis for character frecuency') do
-            opts[:charstats] = false
-        end
-        opt.on('-p','--no-passwd-stats', 'Disable analysis for passwords frecuency') do
-            opts[:passwdstats] = false
-        end
-        opt.on('-l','--no-len-stats','Disable analysis for length of passwords') do
-            opts[:pwdlenstats] = false
-        end
+        #opt.on('-c','--[no-]char-stats', 'Analysis for character frecuency (default True)') do |cf|
+        #    opts[:charstats] = cf
+        #end
+        #opt.on('-p','--[no-]passwd-stats', 'Analysis for passwords frecuency (default True)') do |pf|
+        #    opts[:passwdstats] = pf
+        #end
+        #opt.on('-l','--[no-]len-stats','Analysis for passwords lengths (default True)') do |pl|
+        #    opts[:pwdlenstats] = pl
+        #end
         opt.on('-F [FORMAT]','--format [FORMAT]','The input file can be one of the following format (UFSP,P,U). Default is "P"') do |format|
             if format.strip == "U" or format.strip == "P" or format.strip == "UFSP"
               opts[:format] = format
@@ -114,14 +114,17 @@ def parseOptions
               opts[:format] = "P"
             end
         end
-        opt.on('--separator [FIELD SEPARATOR]','If the file type is UFSP, you can specify here the Field Separator character. Default is ":"') do |fs|
+        opt.on('--separator [SEPARATOR]','If the file type is UFSP, you can specify here the Field Separator character. Default is ":"') do |fs|
             if fs.size != 1
               opts[:fieldseparator] = ":"
             else
               opts[:fieldseparator] = fs
             end
         end
-        opt.on('-E [REGEXP]','--regexp [REGEXP]','Search the specified regular expression within the password file (default is "^.*(passwd|pwd|password).*$")') do |regexp|
+        opt.on('-r','--[no-]regsearch','Search regexp withing password list (default is False)') do |regsearch|
+            opts[:regsearch] = regsearch
+        end
+        opt.on('-E [REGEXP]','--regexp [REGEXP]','Search a regular expression within the passwords (default is "^.*(passwd|pwd|password).*$")') do |regexp|
             opts[:regexp] = regexp
         end
         opt.on("-h","--help", "Print help and usage information") do
@@ -324,6 +327,8 @@ puts "Analyzing passwords complexity..."
 dumppass.each{|pwd|
   if !pwd.nil? and pwd.size > 0
     npwd += 1   
+    lengths << pwd.size
+    
     if (isComplex(pwd))
       complex +=1
     elsif (isUpperLowerNums(pwd))
@@ -343,17 +348,17 @@ dumppass.each{|pwd|
     else
       other += 1
     end
-    
-    if containsRegexp(pwd,options[:regexp])
-      containsregexp += 1
-      if (contains_regexp_pwd[pwd].nil?)
-        contains_regexp_pwd[pwd] = 1
-      else
-        contains_regexp_pwd[pwd] += 1
+
+    if options[:regsearch]
+      if containsRegexp(pwd,options[:regexp])
+        containsregexp += 1
+        if (contains_regexp_pwd[pwd].nil?)
+          contains_regexp_pwd[pwd] = 1
+        else
+          contains_regexp_pwd[pwd] += 1
+        end
       end
     end
-    
-    lengths << pwd.size
     
     ndumpline+=1
     progress = ((ndumpline.to_f/ndumptotal.to_f)*100.0).to_i
@@ -362,7 +367,9 @@ dumppass.each{|pwd|
         time = Time.new
         etaseconds=calculateETA(ndumpline,ndumptotal,startepoch)
         enddate=Time.now.to_i+etaseconds
-        speed=ndumpline/(Time.now.to_i-startepoch)
+        runningsecs = Time.now.to_i-startepoch
+        runningsecs = 1 if runningsecs == 0 # Avoid division by 0
+        speed=ndumpline/runningsecs
         puts " #{progress}% - Line #{ndumpline} of #{ndumptotal}\t(#{speed} pass/sec, ETA #{Time.at(enddate).strftime("%Y-%m-%d %H:%M:%S")})"
         lastshown=progress
       end
@@ -375,40 +382,96 @@ lenhist = lengths.frequency
 ###################
 # Results section #
 ###################
-
-puts "=======================".green
-puts "= Password complexity =".green
-puts "=======================".green
-puts "- Complex: #{complex} (#{(complex.to_f*100/npwd).round(2)} %)"
-puts "- Upper and Low and numbers: #{upperandlownum} (#{(upperandlownum.to_f*100/npwd).round(2)} %)"
-puts "- Upper and Low only: #{upperandlow} (#{(upperandlow.to_f*100/npwd).round(2)} %)"
-puts "- Low case and numbers: #{lowcasenum} (#{(lowcasenum.to_f*100/npwd).round(2)} %)"
-puts "- Upper case and numbers: #{upcasenum} (#{(upcasenum.to_f*100/npwd).round(2)} %)"
-puts "- Low case only: #{lowercaseonly} (#{(lowercaseonly.to_f*100/npwd).round(2)} %)"
-puts "- Upper case only: #{uppercaseonly} (#{(uppercaseonly.to_f*100/npwd).round(2)} %)"
-puts "- Numbers only: #{onlynumber} (#{(onlynumber.to_f*100/npwd).round(2)} %)"
-puts "- Other: #{other} (#{(other.to_f*100/npwd).round(2)} %)"
-puts "------------------------ "
-puts "- Contains the regexp (#{options[:regexp]}): #{containsregexp} (#{(containsregexp.to_f*100/npwd).round(2)} %): "
-contains_regexp_pwd = contains_regexp_pwd.sort_by {|key, value| value}.reverse
-contains_regexp_pwd.each{|matched_pwd,times|
-    puts "-- #{matched_pwd}: #{times}"
-}
-puts "------------------------ "
-
-i = 1
 puts "=====================".green
 puts "= Top #{options[:ntop]} domains =".green
 puts "=====================".green
+topamount = 0
+maxmsglen = 0
+i = 1
 domain_hist = domain_counter.sort_by{|k,v| v}.reverse
+domain_hist.each{|domain,nrepetitions| 
+  statmsg = "#{i} - #{domain}: #{nrepetitions}"
+  topamount += nrepetitions
+  if statmsg.size > maxmsglen
+    maxmsglen = statmsg.size
+  end
+  if i >= options[:ntop]
+    break
+  end
+  i += 1
+}
+i = 1
 domain_hist.each {|domain,nrepetitions|
-  puts "#{i} - #{domain}: #{nrepetitions}"
+  percent=((nrepetitions.to_f/topamount.to_f)*100).round(0)
+  bars="|"*percent
+  bars="|" if bars.size == 0
+  statmsg = "#{i} - #{domain}: #{nrepetitions}"
+  printf("%-#{maxmsglen+2}s %s\n",statmsg,bars)
   domain_hist_ntop[domain] = nrepetitions
   if i >= options[:ntop]
     break
   end
   i += 1
 }
+
+puts "=======================".green
+puts "= Password complexity =".green
+puts "=======================".green
+
+statmsg = "- Complex: #{complex} (#{(complex.to_f*100/npwd).round(2)}%)"
+statpercent = (complex.to_f*100/npwd).round(0)
+bars="|"*statpercent
+bars="|" if bars.size == 0
+printf("%-42s %s\n",statmsg,bars)
+statmsg = "- Upper and Low and numbers: #{upperandlownum} (#{(upperandlownum.to_f*100/npwd).round(2)}%)"
+statpercent = (upperandlownum.to_f*100/npwd).round(0)
+bars="|"*statpercent
+bars="|" if bars.size == 0
+printf("%-42s %s\n",statmsg,bars)
+statmsg = "- Upper and Low only: #{upperandlow} (#{(upperandlow.to_f*100/npwd).round(2)}%)"
+statpercent = (upperandlow.to_f*100/npwd).round(0)
+bars="|"*statpercent
+bars="|" if bars.size == 0
+printf("%-42s %s\n",statmsg,bars)
+statmsg = "- Low case and numbers: #{lowcasenum} (#{(lowcasenum.to_f*100/npwd).round(2)}%)"
+statpercent = (lowcasenum.to_f*100/npwd).round(0)
+bars="|"*statpercent
+bars="|" if bars.size == 0
+printf("%-42s %s\n",statmsg,bars)
+statmsg = "- Upper case and numbers: #{upcasenum} (#{(upcasenum.to_f*100/npwd).round(2)}%)"
+statpercent = (upcasenum.to_f*100/npwd).round(0)
+bars="|"*statpercent
+bars="|" if bars.size == 0
+printf("%-42s %s\n",statmsg,bars)
+statmsg = "- Low case only: #{lowercaseonly} (#{(lowercaseonly.to_f*100/npwd).round(2)}%)"
+statpercent = (lowercaseonly.to_f*100/npwd).round(0)
+bars="|"*statpercent
+printf("%-42s %s\n",statmsg,bars)
+statmsg = "- Upper case only: #{uppercaseonly} (#{(uppercaseonly.to_f*100/npwd).round(2)}%)"
+statpercent = (uppercaseonly.to_f*100/npwd).round(0)
+bars="|"*statpercent
+bars="|" if bars.size == 0
+printf("%-42s %s\n",statmsg,bars)
+statmsg = "- Numbers only: #{onlynumber} (#{(onlynumber.to_f*100/npwd).round(2)}%)"
+statpercent = (onlynumber.to_f*100/npwd).round(0)
+bars="|"*statpercent
+bars="|" if bars.size == 0
+printf("%-42s %s\n",statmsg,bars)
+statmsg = "- Other: #{other} (#{(other.to_f*100/npwd).round(2)}%)"
+statpercent = (other.to_f*100/npwd).round(0)
+bars="|"*statpercent
+bars="|" if bars.size == 0
+printf("%-42s %s\n",statmsg,bars)
+if options[:regsearch]
+  puts "------------------------ "
+  puts "- Contains the regexp (#{options[:regexp]}): #{containsregexp} (#{(containsregexp.to_f*100/npwd).round(2)} %): "
+  contains_regexp_pwd = contains_regexp_pwd.sort_by {|key, value| value}.reverse
+  contains_regexp_pwd.each{|matched_pwd,times|
+      puts "-- #{matched_pwd}: #{times}"
+  }
+  puts "------------------------ "
+end
+
 strength_histogram = Gruff::Pie.new
 strength_histogram.title = "Password strength"
 # strength_histogram.x_axis_label = "Strength"
@@ -426,18 +489,20 @@ strength_histogram.data("Low case",(lowercaseonly.to_f*100/npwd).round(2))
 strength_histogram.data("Up case",(uppercaseonly.to_f*100/npwd).round(2))
 strength_histogram.data("Numbers",(onlynumber.to_f*100/npwd).round(2))
 strength_histogram.data("Others",(other.to_f*100/npwd).round(2))
-
 strength_histogram.write("outputs/#{dumpfilename}-password-strength.png")
 
-puts "=========".green
-puts "= SIZES =".green
-puts "=========".green
+puts "====================".green
+puts "= Password lengths =".green
+puts "====================".green
 size = 0
 
 lenhist.sort.each{|pwdlen,count|
   if pwdlen > 0
     lenhist_nonzero[pwdlen] = (count.to_f*100/npwd).round(2)
-    puts "#{pwdlen}:\t#{count} (#{(count.to_f*100/npwd).round(2)}%)"
+    print "#{pwdlen}:\t#{count} (#{(count.to_f*100/npwd).round(2)}%)\t"
+    bars="|"*(count.to_f*100/npwd).round(0)
+    bars="|" if bars.size == 0
+    puts bars
   end
 }
 
@@ -471,8 +536,27 @@ puts "====================".green
 puts "= Top #{options[:ntop]} passwords =".green
 puts "====================".green
 pwd_hist = pwd_counter.sort_by{|k,v| v}.reverse
+# Calculate total amount of passwords to show
+topamount = 0
+maxmsglen = 0
+pwd_hist.each{|pass,nrepetitions| 
+  statmsg = "#{i} - #{pass}: #{nrepetitions}"
+  topamount += nrepetitions
+  if statmsg.size > maxmsglen
+    maxmsglen = statmsg.size
+  end
+  if i >= options[:ntop]
+    break
+  end
+  i += 1
+}
+i = 1
 pwd_hist.each {|pass,nrepetitions|
-  puts "#{i} - #{pass}: #{nrepetitions}"
+  percent=((nrepetitions.to_f/topamount.to_f)*100).round(0)
+  bars="|"*percent
+  bars="|" if bars.size == 0
+  statmsg = "#{i} - #{pass}: #{nrepetitions}"
+  printf("%-#{maxmsglen+2}s %s\n",statmsg,bars)
   pwd_hist_ntop[pass] = nrepetitions
   if i >= options[:ntop]
     break
