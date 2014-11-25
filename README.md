@@ -16,9 +16,9 @@ Bug reports to Felipe Molina: felmoltor@gmail.com or https://www.twitter.com/fel
 Install
 -------
 
-$ git clone https://github.com/felmoltor/FAP
-$ sudo gem install bundler
-$ bundler install
+* $ git clone https://github.com/felmoltor/FAP
+* $ sudo gem install bundler
+* $ bundler install
 
 Usage
 -----
