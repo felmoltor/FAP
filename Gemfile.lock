@@ -1,0 +1,16 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    colorize (0.5.8)
+    facets (2.9.3)
+    gruff (0.5.1)
+      rmagick
+    rmagick (2.13.3)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  colorize (~> 0.5.1)
+  facets (~> 2.9)
+  gruff
